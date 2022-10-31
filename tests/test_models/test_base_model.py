@@ -1,191 +1,160 @@
 #!/usr/bin/python3
-"""Defines unittests for models/base_model.py.
-Unittest classes:
-    TestBaseModel_instantiation
-    TestBaseModel_save
-    TestBaseModel_to_dict
-"""
-import os
-import models
-import unittest
+"""Contains test cases for the BaseModel class used
+for all other classes in this project"""
+from contextlib import redirect_stdout
 from datetime import datetime
-from time import sleep
 from models.base_model import BaseModel
+import io
+import unittest
 
 
-class TestBaseModel_instantiation(unittest.TestCase):
-    """Unittests for testing instantiation of the BaseModel class."""
+class TestBaseModelClassInstantiation(unittest.TestCase):
+    """Tests the Instantiation of objects; attribute assignment"""
 
-    def test_no_args_instantiates(self):
-        self.assertEqual(BaseModel, type(BaseModel()))
-
-    def test_new_instance_stored_in_objects(self):
-        self.assertIn(BaseModel(), models.storage.all().values())
-
-    def test_id_is_public_str(self):
-        self.assertEqual(str, type(BaseModel().id))
-
-    def test_created_at_is_public_datetime(self):
-        self.assertEqual(datetime, type(BaseModel().created_at))
-
-    def test_updated_at_is_public_datetime(self):
-        self.assertEqual(datetime, type(BaseModel().updated_at))
-
-    def test_two_models_unique_ids(self):
-        bm1 = BaseModel()
-        bm2 = BaseModel()
-        self.assertNotEqual(bm1.id, bm2.id)
-
-    def test_two_models_different_created_at(self):
-        bm1 = BaseModel()
-        sleep(0.05)
-        bm2 = BaseModel()
-        self.assertLess(bm1.created_at, bm2.created_at)
-
-    def test_two_models_different_updated_at(self):
-        bm1 = BaseModel()
-        sleep(0.05)
-        bm2 = BaseModel()
-        self.assertLess(bm1.updated_at, bm2.updated_at)
-
-    def test_str_representation(self):
-        dt = datetime.today()
-        dt_repr = repr(dt)
-        bm = BaseModel()
-        bm.id = "123456"
-        bm.created_at = bm.updated_at = dt
-        bmstr = bm.__str__()
-        self.assertIn("[BaseModel] (123456)", bmstr)
-        self.assertIn("'id': '123456'", bmstr)
-        self.assertIn("'created_at': " + dt_repr, bmstr)
-        self.assertIn("'updated_at': " + dt_repr, bmstr)
-
-    def test_args_unused(self):
-        bm = BaseModel(None)
-        self.assertNotIn(None, bm.__dict__.values())
-
-    def test_instantiation_with_kwargs(self):
-        dt = datetime.today()
-        dt_iso = dt.isoformat()
-        bm = BaseModel(id="345", created_at=dt_iso, updated_at=dt_iso)
-        self.assertEqual(bm.id, "345")
-        self.assertEqual(bm.created_at, dt)
-        self.assertEqual(bm.updated_at, dt)
-
-    def test_instantiation_with_None_kwargs(self):
-        with self.assertRaises(TypeError):
-            BaseModel(id=None, created_at=None, updated_at=None)
-
-    def test_instantiation_with_args_and_kwargs(self):
-        dt = datetime.today()
-        dt_iso = dt.isoformat()
-        bm = BaseModel("12", id="345", created_at=dt_iso, updated_at=dt_iso)
-        self.assertEqual(bm.id, "345")
-        self.assertEqual(bm.created_at, dt)
-        self.assertEqual(bm.updated_at, dt)
-
-
-class TestBaseModel_save(unittest.TestCase):
-    """Unittests for testing save method of the BaseModel class."""
-
-    @classmethod
     def setUp(self):
-        try:
-            os.rename("file.json", "tmp")
-        except IOError:
-            pass
+        """sets up the resources required to run the tests"""
 
-    @classmethod
+        self.model1 = BaseModel()
+        self.model2 = BaseModel()
+
     def tearDown(self):
-        try:
-            os.remove("file.json")
-        except IOError:
-            pass
-        try:
-            os.rename("tmp", "file.json")
-        except IOError:
-            pass
+        """deletes the resources used after tests are run"""
 
-    def test_one_save(self):
-        bm = BaseModel()
-        sleep(0.05)
-        first_updated_at = bm.updated_at
-        bm.save()
-        self.assertLess(first_updated_at, bm.updated_at)
+        del self.model1
+        del self.model2
 
-    def test_two_saves(self):
-        bm = BaseModel()
-        sleep(0.05)
-        first_updated_at = bm.updated_at
-        bm.save()
-        second_updated_at = bm.updated_at
-        self.assertLess(first_updated_at, second_updated_at)
-        sleep(0.05)
-        bm.save()
-        self.assertLess(second_updated_at, bm.updated_at)
+    def test_id_attribute(self):
+        """Tests that objects of this class are properly instantiated
+        with a universally unique identifier"""
 
-    def test_save_with_arg(self):
-        bm = BaseModel()
-        with self.assertRaises(TypeError):
-            bm.save(None)
+        self.assertTrue(hasattr(self.model1, "id"))
+        self.assertIs(type(self.model1.id), str)
+        self.assertNotEqual(self.model1.id, self.model2.id)
 
-    def test_save_updates_file(self):
-        bm = BaseModel()
-        bm.save()
-        bmid = "BaseModel." + bm.id
-        with open("file.json", "r") as f:
-            self.assertIn(bmid, f.read())
+    def test_created_at_attribute(self):
+        """Tests that the current datetime is assigned when
+        objects of this class are instantiated"""
 
+        t = datetime.now()
+        created = self.model1.created_at.isoformat(timespec='seconds')
+        self.assertTrue(hasattr(self.model1, "created_at"))
+        self.assertIs(type(self.model1.created_at), datetime)
+        self.assertGreaterEqual(t.isoformat(timespec='seconds'), created)
 
-class TestBaseModel_to_dict(unittest.TestCase):
-    """Unittests for testing to_dict method of the BaseModel class."""
+    def test_updated_at_attribute(self):
+        """Tests that the current datetime is assigned when
+        objects of this class are updated"""
 
-    def test_to_dict_type(self):
-        bm = BaseModel()
-        self.assertTrue(dict, type(bm.to_dict()))
+        self.assertTrue(hasattr(self.model1, "updated_at"))
+        self.assertIs(type(self.model1.updated_at), datetime)
+        self.model1.save()
+        t = datetime.now()
+        update = self.model1.updated_at.isoformat(timespec='seconds')
+        self.assertEqual(t.isoformat(timespec='seconds'), update)
 
-    def test_to_dict_contains_correct_keys(self):
-        bm = BaseModel()
-        self.assertIn("id", bm.to_dict())
-        self.assertIn("created_at", bm.to_dict())
-        self.assertIn("updated_at", bm.to_dict())
-        self.assertIn("__class__", bm.to_dict())
+    def test_intantiation_with_kwargs(self):
+        """Tests that objects can properly be created with the
+        kwargs argument"""
 
-    def test_to_dict_contains_added_attributes(self):
-        bm = BaseModel()
-        bm.name = "Holberton"
-        bm.my_number = 98
-        self.assertIn("name", bm.to_dict())
-        self.assertIn("my_number", bm.to_dict())
+        attributes = ['id', 'created_at', 'updated_at']
 
-    def test_to_dict_datetime_attributes_are_strs(self):
-        bm = BaseModel()
-        bm_dict = bm.to_dict()
-        self.assertEqual(str, type(bm_dict["created_at"]))
-        self.assertEqual(str, type(bm_dict["updated_at"]))
+        my_model = BaseModel(**{})
+        self.assertNotIn('__class__', my_model.__dict__)
+        for att in attributes:
+            self.assertTrue(hasattr(my_model, att))
 
-    def test_to_dict_output(self):
-        dt = datetime.today()
-        bm = BaseModel()
-        bm.id = "123456"
-        bm.created_at = bm.updated_at = dt
-        tdict = {
-            'id': '123456',
-            '__class__': 'BaseModel',
-            'created_at': dt.isoformat(),
-            'updated_at': dt.isoformat()
-        }
-        self.assertDictEqual(bm.to_dict(), tdict)
+        model1_json = self.model1.to_dict()
+        new_model1 = BaseModel(**model1_json)
+        self.assertNotIn('__class__', new_model1.__dict__)
+        self.assertEqual(len(new_model1.__dict__), len(self.model1.__dict__))
+        for att in attributes:
+            self.assertTrue(hasattr(new_model1, att))
+            self.assertEqual(new_model1.__dict__[att],
+                             self.model1.__dict__[att])
 
-    def test_contrast_to_dict_dunder_dict(self):
-        bm = BaseModel()
-        self.assertNotEqual(bm.to_dict(), bm.__dict__)
-
-    def test_to_dict_with_arg(self):
-        bm = BaseModel()
-        with self.assertRaises(TypeError):
-            bm.to_dict(None)
+        self.model2.name = "My_Second_model"
+        self.model2.number = 100
+        model2_json = self.model2.to_dict()
+        new_model2 = BaseModel(**model2_json)
+        self.assertNotIn('__class__', new_model1.__dict__)
+        self.assertEqual(len(self.model2.__dict__), len(new_model2.__dict__))
+        attributes.extend(['name', 'number'])
+        for att in attributes:
+            self.assertTrue(hasattr(new_model2, att))
+            self.assertEqual(new_model2.__dict__[att],
+                             self.model2.__dict__[att])
 
 
-if __name__ == "__main__":
+class TestBaseModelClassMethods(unittest.TestCase):
+    """defines functions that test the methods defined in the Base class"""
+
+    def setUp(self):
+        """Sets up the resources needed to run the tests"""
+
+        self.model1 = BaseModel()
+        self.model2 = BaseModel()
+
+    def tearDown(self):
+        """Deletes the resources created when running the tests"""
+
+        del self.model1
+        del self.model2
+
+    def test_save_method(self):
+        """Tests that this methods correctly updates the public instance
+        attribute updated_at with the current datetime when called"""
+
+        old = self.model1.updated_at
+        self.model1.save()
+        new = self.model1.updated_at
+        self.assertNotEqual(old, new)
+
+    @staticmethod
+    def captured_output(obj):
+        """Captures what is printed to the standard output
+        when the print method is called on obj"""
+
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            print(obj)
+        return (captured_output.getvalue())
+
+    def test_str_method(self):
+        """Tests that the __str__ method correctly returns
+        a string representation of objects of this class"""
+
+        self.assertEqual(TestBaseModelClassMethods.captured_output(
+            self.model1), f"[BaseModel]\
+ ({self.model1.id}) {self.model1.__dict__}\n")
+
+    def test_to_dict_method(self):
+        """Tests that the to_dict methd returns the expected dictionary
+        representation of the instance attributes"""
+
+        my_dict = self.model1.to_dict()
+
+        self.assertTrue(type(my_dict) == dict)
+
+        keys = ["id", "created_at", "updated_at", "__class__"]
+        self.assertEqual(len(keys), len(my_dict.keys()))
+        for key in keys:
+            self.assertIn(key, my_dict.keys())
+
+        self.assertEqual(my_dict["id"], self.model1.id)
+        self.assertTrue(type(my_dict["id"]) == str)
+
+        self.assertTrue(type(my_dict["__class__"]) == str)
+        self.assertTrue(my_dict["__class__"] ==
+                        self.model1.__class__.__name__)
+
+        self.assertTrue(type(my_dict["created_at"]) == str)
+        created_at_date = datetime.fromisoformat(my_dict["created_at"])
+        self.assertEqual(created_at_date, self.model1.created_at)
+
+        self.assertTrue(type(my_dict["updated_at"]) == str)
+        updated_at_date = datetime.fromisoformat(my_dict["updated_at"])
+        self.assertEqual(updated_at_date, self.model1.updated_at)
+
+
+if __name__ == '__main__':
     unittest.main()
