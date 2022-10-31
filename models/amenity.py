@@ -1,13 +1,13 @@
 #!/usr/bin/python3
-
 """
-    Defines a class Amenity.
+The Amenity module
+Inherits from BaseModel
 """
 
 from models.base_model import BaseModel
 
 
 class Amenity(BaseModel):
-    """Represent a Amenity."""
+    """Subclass of BaseModel"""
 
     name = ""

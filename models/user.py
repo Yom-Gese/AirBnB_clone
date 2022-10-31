@@ -1,21 +1,16 @@
 #!/usr/bin/python3
-
 """
-    Defines a class User.
+The User module
+Inherits from BaseModel
 """
 
 from models.base_model import BaseModel
 
 
 class User(BaseModel):
-    """Represent a User."""
+    """Subclass of BaseModel"""
 
     email = ""
     password = ""
     first_name = ""
     last_name = ""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize a new User"""
-
-        super().__init__(*args, **kwargs)
