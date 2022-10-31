@@ -298,7 +298,9 @@ class HBNBCommand(cmd.Cmd):
             int(str)
             return True
         except ValueError:
+            print("wrong input")
             return False
+
 
     @staticmethod
     def RepresentsFloat(str):
@@ -306,6 +308,7 @@ class HBNBCommand(cmd.Cmd):
             float(str)
             return True
         except ValueError:
+            print("wrong input")
             return False
 
 
